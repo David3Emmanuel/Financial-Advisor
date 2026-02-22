@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import asyncio
 import requests
 import uvicorn
 from typing import List, Dict, Any, Optional
@@ -81,6 +82,33 @@ def search_news(query: str) -> Dict[str, Any]:
 # Map tools for the LLM
 tools = [get_market_data, search_news]
 
+# --- Exponential Backoff Logic ---
+
+async def call_gemini_with_retry(message: str):
+    retries = 5
+    for i in range(retries):
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=message,
+                config={
+                    'system_instruction': (
+                        "You are an expert financial analyst agent. "
+                        "Use 'get_market_data' for prices and 'search_news' for news/sentiment. "
+                        "Synthesize findings into a concise report. "
+                        "Always provide a sentiment (Bullish/Bearish/Neutral) and a Risk Score (1-10). "
+                        "Respond in clear Markdown."
+                    ),
+                    'tools': tools,
+                }
+            )
+            return response
+        except Exception as e:
+            if i == retries - 1:
+                raise e
+            wait_time = 2**i
+            await asyncio.sleep(wait_time)
+
 # --- API Endpoints ---
 
 class QueryRequest(BaseModel):
@@ -93,21 +121,7 @@ async def analyze_financial_query(request: QueryRequest):
 
     try:
         # Execute Agent with automatic function calling
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=request.message,
-            config={
-                'system_instruction': (
-                    "You are an expert financial analyst agent. "
-                    "Use 'get_market_data' for prices and 'search_news' for news/sentiment. "
-                    "Synthesize findings into a concise report. "
-                    "Always provide a sentiment (Bullish/Bearish/Neutral) and a Risk Score (1-10). "
-                    "Respond in clear Markdown."
-                ),
-                'tools': tools,
-            }
-        )
-        
+        response = await call_gemini_with_retry(request.message)
         if not response:
             raise HTTPException(status_code=500, detail="No response from Gemini")
         
