@@ -138,6 +138,23 @@ async def analyze_financial_query(request: QueryRequest):
 def health_check():
     return {"status": "healthy", "timestamp": time.time()}
 
+@app.get("/models")
+def list_models():
+    """List available Gemini models"""
+    try:
+        models = client.models.list()
+        return {
+            "models": [
+                {
+                    "name": model.name,
+                    "display_name": getattr(model, 'display_name', model.name),
+                }
+                for model in models
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     # Railway uses the PORT environment variable
     port = int(os.environ.get("PORT", 8000))
