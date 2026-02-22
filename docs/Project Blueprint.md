@@ -40,9 +40,10 @@ A lightweight AI-driven agent that synthesizes real-time market data (via Finnhu
 └─────────────┘         └──────────────┘         └─────────────────┘
       │                        │
       │                        │
-      ▼                        ▼
-   Vercel                   Railway
- (Production)             (Production)
+      └────────────┬───────────┘
+                   ▼
+                Railway
+             (Production)
 ```
 
 ## 6. Function Calling Flow

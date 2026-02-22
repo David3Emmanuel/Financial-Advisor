@@ -5,7 +5,8 @@ Step-by-step guide for deploying the FinAgent application to production.
 ## 📋 Overview
 
 - **Backend**: Railway (Python + FastAPI)
-- **Frontend**: Vercel (React + Vite)
+- **Frontend**: Railway (React + Vite)
+- **Networking**: Private network connection between services
 - **Total time**: ~15-20 minutes
 
 ## 🎯 Prerequisites
@@ -14,7 +15,6 @@ Before you begin, ensure you have:
 
 - [ ] GitHub account
 - [ ] Railway account (sign up at [railway.app](https://railway.app/))
-- [ ] Vercel account (sign up at [vercel.com](https://vercel.com/))
 - [ ] API keys:
   - [ ] Google AI Studio (Gemini)
   - [ ] Tavily API
@@ -75,12 +75,12 @@ git push -u origin main
 2. Watch the **Deployments** tab for progress
 3. Wait for "SUCCESS" status (~2-3 minutes)
 
-### Step 5: Get Backend URL
+### Step 5: Get Backend Service Name
 
-1. Go to **Settings** → **Networking**
-2. Click **"Generate Domain"**
-3. Copy the URL (e.g., `https://finagent-backend.up.railway.app`)
-4. **Save this URL** - you'll need it for frontend deployment
+1. In your Railway backend service, note the **service name**
+2. By default, it's usually `backend` or `web`
+3. You can rename it in **Settings** → **Service** → **Service Name**
+4. **Save this name** - you'll need it for frontend private network setup
 
 ### Step 6: Test Backend
 
@@ -92,51 +92,108 @@ curl https://your-backend.up.railway.app/health
 # {"status":"healthy","timestamp":1708617600.0}
 ```
 
-## 🎨 Part 2: Deploy Frontend to Vercel
+## 🎨 Part 2: Deploy Frontend to Railway
 
-### Step 1: Create Vercel Project
+### Step 1: Add Frontend Service to Railway Project
 
-1. Go to [vercel.com](https://vercel.com/)
-2. Click **"Add New..."** → **"Project"**
-3. Import your `Financial-Advisor` repository from GitHub
-4. Authorize GitHub if needed
+1. In your Railway project (same project as backend)
+2. Click **"+ New"** → **"GitHub Repo"**
+3. Select the same `Financial-Advisor` repository
+4. This creates a second service in your project
 
-### Step 2: Configure Build Settings
+### Step 2: Configure Frontend Service
 
-In the "Configure Project" screen:
+1. **Set Root Directory**:
+   - Click on the new frontend service
+   - Go to **Settings** → **Service**
+   - Set **Root Directory** to: `frontend`
+   - Click **Save**
 
-1. **Framework Preset**: Vite
-2. **Root Directory**: Click **"Edit"** and enter: `frontend`
-3. **Build Command**: `npm run build` (should auto-fill)
-4. **Output Directory**: `dist` (should auto-fill)
-5. **Install Command**: `npm install` (should auto-fill)
+2. **Rename Service** (optional but recommended):
+   - In **Settings** → **Service**
+   - Set **Service Name** to: `frontend`
+   - Click **Save**
 
-### Step 3: Add Environment Variable
+3. **Add Environment Variables**:
+   - Go to **Variables** tab
+   - Click **"+ New Variable"**
+   - Add variable:
+     ```
+     VITE_API_URL = http://backend.railway.internal:8000
+     ```
+   - **Important**: Replace `backend` with your actual backend service name from Part 1, Step 5
 
-1. Expand **"Environment Variables"**
-2. Add variable:
-   - **Name**: `VITE_API_URL`
-   - **Value**: Your Railway backend URL (from Part 1, Step 5)
-   - Example: `https://finagent-backend.up.railway.app`
-3. Make sure to select all environments (Production, Preview, Development)
+### Step 3: Verify Build Configuration
+
+The `railway.json` and `package.json` are already configured to:
+
+- Build the Vite app: `npm run build`
+- Serve it with Express: `npm run start`
+
+No additional configuration needed!
 
 ### Step 4: Deploy
 
-1. Click **"Deploy"**
-2. Wait for build to complete (~2-3 minutes)
-3. Vercel will show a preview URL when done
+1. Railway will automatically start deploying
+2. Watch the **Deployments** tab for progress
+3. Wait for "SUCCESS" status (~2-3 minutes)
 
-### Step 5: Test Frontend
+### Step 5: Generate Public Domain
 
-1. Click the preview URL Vercel provides
+1. Go to **Settings** → **Networking**
+2. Click **"Generate Domain"**
+3. Copy the frontend URL (e.g., `https://finagent-frontend.up.railway.app`)
+4. This is your public application URL!
+
+### Step 6: Test Frontend
+
+### Step 6: Test Frontend
+
+1. Open your Railway frontend URL in a browser
 2. Try a sample query like "$NVDA" or "Should I buy Bitcoin?"
 3. Verify it connects to your backend and returns analysis
+
+## 🔗 Understanding Railway Private Networking
+
+### How It Works
+
+Railway's private network allows services within the same project to communicate securely without exposing internal endpoints to the internet.
+
+- **Private URL Format**: `http://<service-name>.railway.internal:<port>`
+- **Example**: `http://backend.railway.internal:8000`
+- **Advantages**:
+  - Faster communication (no external network hops)
+  - More secure (internal traffic only)
+  - No additional cost for bandwidth
+  - Lower latency
+
+### Your Setup
+
+```
+┌─────────────────────────────────────────┐
+│         Railway Project                 │
+│                                         │
+│  ┌──────────┐      ┌──────────┐       │
+│  │ Frontend │─────▶│ Backend  │       │
+│  │ Service  │      │ Service  │       │
+│  └──────────┘      └──────────┘       │
+│       │                                │
+└───────┼────────────────────────────────┘
+        │
+        ▼
+    Internet Users
+```
+
+- Users access frontend via public URL
+- Frontend communicates with backend via private network
+- Backend APIs are not directly exposed to the internet (unless you generate a domain for it)
 
 ## ✅ Verification Checklist
 
 After deployment, verify everything works:
 
 ### Backend Tests
+
 ```bash
 # Replace with your actual URLs
 BACKEND_URL="https://your-backend.up.railway.app"
@@ -154,39 +211,38 @@ Expected: Both should return JSON responses without errors
 
 ### Frontend Tests
 
-1. **Open your Vercel URL** in a browser
+1. **Open your Railway frontend URL** in a browser
 2. **Test search**:
    - Enter "$BTC" in search box
    - Click "Analyze"
    - Should show analysis after a few seconds
 3. **Check browser console**:
    - Press F12 → Console tab
-   - Should have no CORS errors
+   - Should have no errors
 4. **Test error handling**:
    - If backend is down, should show error message
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| Frontend shows "API request failed" | Check `VITE_API_URL` in Vercel environment variables |
-| CORS errors | Verify backend `allow_origins=["*"]` in `main.py` |
-| Backend 500 errors | Check Railway logs for missing environment variables |
-| "Module not found" on Railway | Verify `requirements.txt` is correct |
-| Frontend build fails | Check Node version (should use 18+) |
+| Issue                               | Solution                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Frontend shows "API request failed" | Check `VITE_API_URL` environment variable in frontend service                                        |
+| Frontend can't connect to backend   | Verify backend service name matches in `VITE_API_URL` (e.g., `http://backend.railway.internal:8000`) |
+| Backend 500 errors                  | Check Railway logs for missing environment variables                                                 |
+| "Module not found" on Railway       | Verify `requirements.txt` or `package.json` is correct                                               |
+| Frontend build fails                | Check Node version (should use 18+)                                                                  |
+| Port binding errors                 | Railway automatically sets `PORT` variable, ensure your app uses it                                  |
 
 ## 🔄 Continuous Deployment
 
-Both platforms are now configured for automatic deployment:
+Railway is now configured for automatic deployment of both services:
 
-### Railway (Backend)
-- Automatically deploys on push to `main` branch
+### Both Services (Backend & Frontend)
+
+- Automatically deploy on push to `main` branch
 - Monitor deployments in Railway dashboard
-
-### Vercel (Frontend)
-- Automatically deploys on push to `main` branch
-- Preview deployments for pull requests
-- Monitor deployments in Vercel dashboard
+- Each service deploys independently when its directory changes
+- View logs for each service separately
 
 ## 🔧 Making Updates
 
@@ -199,7 +255,7 @@ Both platforms are now configured for automatic deployment:
    git commit -m "Update backend"
    git push
    ```
-3. Railway automatically redeploys
+3. Railway automatically redeploys backend service only
 
 ### Update Frontend
 
@@ -210,25 +266,35 @@ Both platforms are now configured for automatic deployment:
    git commit -m "Update frontend"
    git push
    ```
-3. Vercel automatically redeploys
+3. Railway automatically redeploys frontend service only
 
 ## 📊 Monitoring
 
 ### Railway Dashboard
-- View logs: Project → Service → Logs
+
+**Backend Service**:
+
+- View logs: Project → Backend Service → Logs
 - Check metrics: CPU, Memory, Network
 - View deployments: Deployments tab
 
-### Vercel Dashboard
-- View deployments: Project → Deployments
-- Check analytics: Analytics tab (requires Pro)
-- View logs: Deployment → Function Logs
+**Frontend Service**:
+
+- View logs: Project → Frontend Service → Logs
+- Check metrics: CPU, Memory, Network
+- View deployments: Deployments tab
+
+### Tips
+
+- Use the **Project Canvas** view to see both services and their connections
+- Set up **Notifications** in project settings for deployment failures
+- Monitor **Resource Usage** to stay within free tier limits
 
 ## 🔒 Security Checklist
 
 - [ ] Never commit `.env` files (check `.gitignore`)
 - [ ] API keys are stored as environment variables only
-- [ ] HTTPS is enabled (automatic on Railway/Vercel)
+- [ ] HTTPS is enabled (automatic on Railway)
 - [ ] Review CORS settings for production
 - [ ] Monitor API usage to avoid quota overages
 
@@ -237,16 +303,15 @@ Both platforms are now configured for automatic deployment:
 ### Free Tier Limits
 
 **Railway**:
-- $5 credit per month (hobby plan)
-- Typically sufficient for low-traffic apps
-- Sleeps after inactivity (5-10 second cold start)
 
-**Vercel**:
-- 100 GB bandwidth per month
-- Unlimited deployments
-- Free for personal projects
+- $5 credit per month (hobby plan)
+- Shared across both frontend and backend services
+- Typically sufficient for low-traffic apps
+- Services sleep after inactivity (5-10 second cold start)
+- Private networking is included at no extra cost
 
 **API Costs**:
+
 - Gemini API: Free tier (60 requests/minute)
 - Tavily API: Free tier (1000 requests/month)
 - Finnhub API: Free tier (60 API calls/minute)
@@ -254,30 +319,38 @@ Both platforms are now configured for automatic deployment:
 ### Scaling Beyond Free Tier
 
 When you need more:
-- Railway Pro: $20/month
-- Vercel Pro: $20/month per user
+
+- Railway Pro: $20/month (includes $20 credit)
 - Consider caching to reduce API calls
+- Monitor usage in Railway dashboard
+
+### Cost Optimization Tips
+
+- Use private networking (no external bandwidth costs)
+- Enable auto-sleep for services during low traffic
+- Monitor API usage to avoid quota overages
+- Consider adding response caching
 
 ## 🎉 Success!
 
-Your FinAgent app is now live! Share your URLs:
+Your FinAgent app is now live on Railway! Share your URL:
 
-- **Frontend**: `https://your-app.vercel.app`
-- **Backend**: `https://your-backend.up.railway.app`
+- **Application**: `https://your-frontend.up.railway.app`
+- **Backend API** (if exposed): `https://your-backend.up.railway.app`
 
 ## 📚 Next Steps
 
-1. **Custom Domain**: Add your own domain in Vercel settings
-2. **Analytics**: Enable Vercel Analytics for usage tracking
-3. **Monitoring**: Set up uptime monitoring (e.g., UptimeRobot)
-4. **Error Tracking**: Consider adding Sentry for error monitoring
-5. **Performance**: Add caching layer (Redis) if needed
+1. **Custom Domain**: Add your own domain in Railway settings
+2. **Monitoring**: Set up uptime monitoring (e.g., UptimeRobot)
+3. **Error Tracking**: Consider adding Sentry for error monitoring
+4. **Performance**: Add caching layer (Redis on Railway) if needed
+5. **Security**: Review CORS settings and API rate limiting
 
 ## 🆘 Getting Help
 
 If you encounter issues:
 
-1. **Check logs**: Railway and Vercel dashboards
+1. **Check logs**: Railway dashboard for both services
 2. **Review documentation**: [Backend Setup Guide](Backend%20Setup%20Guide.md)
 3. **Test locally**: Ensure everything works on `localhost` first
 4. **Verify environment variables**: Double-check all API keys
@@ -286,11 +359,11 @@ If you encounter issues:
 ## 📞 Support Resources
 
 - [Railway Documentation](https://docs.railway.app/)
-- [Vercel Documentation](https://vercel.com/docs)
+- [Railway Private Networking Guide](https://docs.railway.app/reference/private-networking)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Vite Documentation](https://vitejs.dev/)
 - [Gemini API Docs](https://ai.google.dev/docs)
 
 ---
 
-**Congratulations!** 🎊 Your AI Financial Advisor is now deployed and ready to analyze markets!
+**Congratulations!** 🎊 Your AI Financial Advisor is now deployed on Railway with secure private networking!

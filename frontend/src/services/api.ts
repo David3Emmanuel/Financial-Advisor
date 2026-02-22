@@ -1,4 +1,6 @@
 // API service for communicating with the backend
+// For Railway deployment with private networking, use: http://backend.railway.internal:8000
+// For local development: http://localhost:8000
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 

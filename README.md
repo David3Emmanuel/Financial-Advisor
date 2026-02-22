@@ -12,7 +12,7 @@ A full-stack AI-powered financial analysis application that provides real-time m
 - **Real-time Market Data**: Integration with Finnhub for live stock, crypto, and forex prices
 - **News Sentiment**: Tavily API for up-to-date financial news and sentiment analysis
 - **Modern UI**: Beautiful, responsive React frontend built with Tailwind CSS
-- **Production Ready**: Configured for deployment on Railway (backend) and Vercel (frontend)
+- **Production Ready**: Configured for deployment on Railway (both frontend and backend with private networking)
 
 ## 📁 Project Structure
 
@@ -39,7 +39,7 @@ Financial-Advisor/
 │   ├── tsconfig.json    # TypeScript configuration
 │   ├── tailwind.config.js # Tailwind CSS configuration
 │   ├── .env.example     # Environment variables template
-│   ├── vercel.json      # Vercel deployment config
+│   ├── railway.json     # Railway deployment config
 │   └── README.md        # Frontend documentation
 │
 ├── docs/                # Additional documentation
@@ -158,19 +158,28 @@ Financial-Advisor/
    - `GOOGLE_API_KEY`
    - `TAVILY_API_KEY`
    - `FINNHUB_API_KEY`
-5. **Deploy**: Railway will auto-detect and deploy
+5. **Note the service name** (default: `backend`)
 
-### Frontend (Vercel)
+### Frontend (Railway)
 
-1. **Create a new project** on [Vercel](https://vercel.com/)
-2. **Import your GitHub repository**
-3. **Configure build settings**:
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
+1. **Add a new service** to the same Railway project
+2. **Connect the same GitHub repository**
+3. **Set the root directory** to `frontend`
 4. **Add environment variable**:
-   - `VITE_API_URL`: Your Railway backend URL
-5. **Deploy**: Vercel will build and deploy
+   - `VITE_API_URL=http://backend.railway.internal:8000`
+   - (Replace `backend` with your actual backend service name)
+5. **Deploy**: Railway will build and serve the frontend
+6. **Generate domain** for public access
+
+### Private Networking
+
+Railway services in the same project can communicate via private network:
+
+- **Format**: `http://<service-name>.railway.internal:<port>`
+- **Benefits**: Faster, more secure, no external bandwidth costs
+- Frontend → Backend communication happens privately
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed step-by-step instructions.
 
 ## 📡 API Endpoints
 

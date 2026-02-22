@@ -46,11 +46,18 @@ npm run preview
 
 Create a `.env` file based on `.env.example`:
 
+````env
 ```env
 VITE_API_URL=http://localhost:8000
-```
+````
 
-For production deployment on Vercel, set `VITE_API_URL` to your Railway backend URL.
+**Deployment options**:
+
+- **Local development**: `http://localhost:8000`
+- **Railway (private network)**: `http://backend.railway.internal:8000`
+- **Railway (public URL)**: `https://your-backend.railway.app`
+
+See `.env.example` for more details.
 
 ### Vite Configuration
 
@@ -83,6 +90,7 @@ src/
 The project uses Tailwind CSS for styling. Configuration is in `tailwind.config.js`.
 
 Key design features:
+
 - Responsive layout
 - Modern glassmorphism effects
 - Smooth animations
@@ -100,10 +108,10 @@ The frontend communicates with the backend via the API service layer in `src/ser
 Sends a financial query to the backend AI agent.
 
 ```typescript
-import { analyzeQuery } from './services/api'
+import { analyzeQuery } from "./services/api";
 
-const response = await analyzeQuery('Should I buy NVDA?')
-console.log(response.text) // AI analysis
+const response = await analyzeQuery("Should I buy NVDA?");
+console.log(response.text); // AI analysis
 ```
 
 #### `checkHealth()`
@@ -111,30 +119,29 @@ console.log(response.text) // AI analysis
 Checks if the backend is available.
 
 ```typescript
-import { checkHealth } from './services/api'
+import { checkHealth } from "./services/api";
 
-const health = await checkHealth()
-console.log(health.status) // 'healthy'
+const health = await checkHealth();
+console.log(health.status); // 'healthy'
 ```
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Railway (Recommended)
 
-1. **Import your repository** in Vercel
+The project is configured for Railway deployment with private networking:
+
+1. **Create new service** in your Railway project
 2. **Root Directory**: `frontend`
-3. **Build Command**: `npm run build`
-4. **Output Directory**: `dist`
-5. **Environment Variables**: `VITE_API_URL` (your Railway backend URL)
+3. **Environment Variables**:
+   - `VITE_API_URL=http://backend.railway.internal:8000`
+   - (Replace `backend` with your actual backend service name)
 
-The `vercel.json` file is already configured.
+The `railway.json` file and build configuration are already set up. Railway will:
 
-### Alternative: Netlify
-
-```bash
-npm run build
-netlify deploy --prod --dir=dist
-```
+- Build the Vite app (`npm run build`)
+- Serve it using Express (`npm run start`)
+- Connect to backend via private network
 
 ## 🧪 Browser Support
 
@@ -160,14 +167,17 @@ TypeScript configuration is in `tsconfig.json`. Strict mode is enabled for bette
 ## 🐛 Troubleshooting
 
 **CORS errors during development:**
+
 - Ensure backend is running on port 8000
 - Vite proxy should handle CORS automatically
 
 **Build errors:**
+
 - Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
 - Clear Vite cache: `rm -rf node_modules/.vite`
 
 **TypeScript errors:**
+
 - Run `npm run build` to see all type errors
 - Check `tsconfig.json` for strict mode settings
 
