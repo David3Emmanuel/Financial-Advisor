@@ -119,9 +119,10 @@ curl https://your-backend.up.railway.app/health
    - Click **"+ New Variable"**
    - Add variable:
      ```
-     VITE_API_URL = http://backend.railway.internal:8000
+     BACKEND_URL = http://backend.railway.internal:8000
      ```
    - **Important**: Replace `backend` with your actual backend service name from Part 1, Step 5
+   - **Note**: This variable is used by the Express server to proxy API requests, not by the browser
 
 ### Step 3: Verify Build Configuration
 
@@ -161,32 +162,62 @@ Railway's private network allows services within the same project to communicate
 
 - **Private URL Format**: `http://<service-name>.railway.internal:<port>`
 - **Example**: `http://backend.railway.internal:8000`
+- **Important**: Private URLs are only accessible **between Railway services**, not from browsers
 - **Advantages**:
   - Faster communication (no external network hops)
   - More secure (internal traffic only)
   - No additional cost for bandwidth
   - Lower latency
 
+### How This Application Uses It
+
+The frontend uses a **server-side proxy pattern** to enable private networking:
+
+1. **Browser → Frontend Public URL**: User accesses the React app via Railway's public domain
+2. **Browser → Frontend API Routes**: JavaScript makes requests to `/api/analyze` (relative paths)
+3. **Frontend Server → Backend Private URL**: Express server proxies these requests to `http://backend.railway.internal:8000`
+4. **Backend → Frontend Server → Browser**: Response flows back through the same path
+
+**Why This Pattern?**
+
+- Browsers cannot resolve `.railway.internal` DNS (only exists within Railway's network)
+- The Express server runs on Railway and CAN access private network
+- Using relative paths in browser code makes the app environment-agnostic
+
 ### Your Setup
 
 ```
-┌─────────────────────────────────────────┐
-│         Railway Project                 │
-│                                         │
-│  ┌──────────┐      ┌──────────┐       │
-│  │ Frontend │─────▶│ Backend  │       │
-│  │ Service  │      │ Service  │       │
-│  └──────────┘      └──────────┘       │
-│       │                                │
-└───────┼────────────────────────────────┘
-        │
-        ▼
+┌─────────────────────────────────────────────────────────┐
+│              Railway Project                            │
+│                                                         │
+│  ┌────────────────┐           ┌──────────────┐        │
+│  │ Frontend       │  Private  │  Backend     │        │
+│  │ Service        │──────────▶│  Service     │        │
+│  │ (Express)      │  Network  │  (FastAPI)   │        │
+│  └────────────────┘           └──────────────┘        │
+│         ▲                                              │
+└─────────┼──────────────────────────────────────────────┘
+          │
+          │ Public HTTPS
+          ▼
     Internet Users
+    (Browsers)
 ```
 
+**Request Flow:**
+
+1. User browser → `https://finagent-frontend.up.railway.app/api/analyze` (public)
+2. Frontend Express proxy → `http://backend.railway.internal:8000/api/analyze` (private)
+3. Backend processes request and returns response
+4. Frontend proxy → User browser
+
+**Key Points:**
+
 - Users access frontend via public URL
-- Frontend communicates with backend via private network
+- Browser makes requests to frontend's domain (e.g., `/api/analyze`)
+- Frontend Express server proxies to backend via private network
 - Backend APIs are not directly exposed to the internet (unless you generate a domain for it)
+- Browser code never sees `.railway.internal` URLs
 
 ## ✅ Verification Checklist
 
@@ -224,14 +255,15 @@ Expected: Both should return JSON responses without errors
 
 ### Common Issues
 
-| Issue                               | Solution                                                                                             |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Frontend shows "API request failed" | Check `VITE_API_URL` environment variable in frontend service                                        |
-| Frontend can't connect to backend   | Verify backend service name matches in `VITE_API_URL` (e.g., `http://backend.railway.internal:8000`) |
-| Backend 500 errors                  | Check Railway logs for missing environment variables                                                 |
-| "Module not found" on Railway       | Verify `requirements.txt` or `package.json` is correct                                               |
-| Frontend build fails                | Check Node version (should use 18+)                                                                  |
-| Port binding errors                 | Railway automatically sets `PORT` variable, ensure your app uses it                                  |
+| Issue                               | Solution                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Frontend shows "API request failed" | Check `BACKEND_URL` environment variable in frontend service                                        |
+| Frontend can't connect to backend   | Verify backend service name matches in `BACKEND_URL` (e.g., `http://backend.railway.internal:8000`) |
+| "Backend is not available" error    | Check backend is running and backend service name is correct in `BACKEND_URL`                       |
+| Backend 500 errors                  | Check Railway logs for missing environment variables                                                |
+| "Module not found" on Railway       | Verify `requirements.txt` or `package.json` is correct                                              |
+| Frontend build fails                | Check Node version (should use 18+)                                                                 |
+| Port binding errors                 | Railway automatically sets `PORT` variable, ensure your app uses it                                 |
 
 ## 🔄 Continuous Deployment
 

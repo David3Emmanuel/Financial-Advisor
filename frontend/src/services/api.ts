@@ -1,8 +1,6 @@
 // API service for communicating with the backend
-// For Railway deployment with private networking, use: http://backend.railway.internal:8000
-// For local development: http://localhost:8000
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Uses relative paths - the Express server proxies requests to the backend
+// This enables Railway private networking without exposing internal URLs to browsers
 
 export interface AnalysisResponse {
   text: string
@@ -21,7 +19,7 @@ export interface AnalysisError {
  */
 export async function analyzeQuery(message: string): Promise<AnalysisResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+    const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +53,7 @@ export async function checkHealth(): Promise<{
   timestamp: number
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`)
+    const response = await fetch('/health')
     if (!response.ok) {
       throw new Error('Health check failed')
     }
