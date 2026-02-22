@@ -1,17 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Search,
-  TrendingUp,
-  AlertTriangle,
-  Newspaper,
-  Cpu,
-  ArrowRight,
-  BarChart3,
-  Github,
-  Twitter,
-  ExternalLink,
-  Loader2,
-} from 'lucide-react'
+import { Search, Cpu, Github, Twitter, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { analyzeQuery } from './services/api'
 
